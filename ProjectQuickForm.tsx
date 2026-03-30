@@ -26,44 +26,57 @@ export function ProjectQuickForm() {
 
   const { errors } = form.formState;
 
-  const onSubmit = form.handleSubmit((values) => {
-    const timestamp = new Date().toISOString();
-    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 9);
+  const handleActualSubmit = (values: ProjectFormValues) => {
+    try {
+      const timestamp = new Date().toISOString();
+      const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 9);
 
-    addProject({
-      id: `proj_${newId}`,
-      name: values.name,
-      genre: values.genre || "",
-      platform: values.platform || "",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      status: "Draft",
-      targetAudience: "",
-    });
+      addProject({
+        id: `proj_${newId}`,
+        name: values.name,
+        genre: values.genre || "",
+        platform: values.platform || "",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        status: "Draft",
+        targetAudience: "",
+      });
 
-    form.reset();
-  });
+      form.reset();
+      console.log("Project created successfully");
+    } catch (error) {
+      console.error("Failed to create project:", error);
+    }
+  };
 
-  // Chặn render cho đến khi Store sẵn sàng (fix lỗi liệt nút trên Vercel)
-  if (!hasHydrated) return <div className="h-10 animate-pulse bg-slate-100 rounded-lg" />;
+  if (!hasHydrated) {
+    return <div className="h-10 w-full animate-pulse bg-slate-100 rounded-lg" />;
+  }
 
   return (
-    <form className="grid gap-3 md:grid-cols-4 items-start" onSubmit={onSubmit}>
+    <form 
+      className="grid gap-3 md:grid-cols-4 items-start" 
+      onSubmit={form.handleSubmit(handleActualSubmit)}
+    >
       <div className="flex flex-col gap-1">
         <Input 
           placeholder="Project name" 
           {...form.register("name")} 
           className={errors.name ? "border-red-500 focus:ring-red-200" : ""}
         />
-        {errors.name && <span className="text-[10px] text-red-500 px-1 font-medium">{errors.name.message}</span>}
+        {errors.name && (
+          <span className="text-[10px] text-red-500 px-1 font-medium italic">
+            {errors.name.message}
+          </span>
+        )}
       </div>
 
       <Input placeholder="Genre" {...form.register("genre")} />
       <Input placeholder="Platform" {...form.register("platform")} />
       
-      <Button type="submit" className="h-10">
+      <Button type="submit" className="h-10 bg-teal-600 hover:bg-teal-700 text-white">
         {t.common.create}
       </Button>
     </form>
