@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import TurndownService from "turndown";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
@@ -79,7 +80,7 @@ export function GDDStudioPage() {
     const starter = buildStarterGddFromSources(activeProject.id, newVersionName, scopedSources, buildMode);
     addGddVersion(starter);
     addRevisionLog({
-      id: `revision_${Math.random().toString(36).substr(2, 9)}`,
+      id: `revision_${Date.now()}`,
       projectId: activeProject.id,
       versionId: starter.id,
       changeSummary: `Created starter GDD version ${starter.name} from sources.`,
@@ -91,18 +92,48 @@ export function GDDStudioPage() {
     updateProject(activeProject.id, { currentVersionId: starter.id });
   };
 
-  // Logic xuất file DOCX (Giả định hàm này được import hoặc định nghĩa)
-  const handleExportDocx = () => {
-    if (!currentVersion) return;
-    // Gọi hàm export logic tại đây (Sử dụng thư viện docx đã hướng dẫn)
-    pushToast("Exporting GDD to DOCX...", "success");
-    console.log("Exporting version:", currentVersion.name);
+  // Logic xuất file .MD (Markdown) để giữ định dạng bảng
+  const handleExportMarkdown = () => {
+    if (!currentVersion) {
+      pushToast("No version to export", "error");
+      return;
+    }
+
+    const turndownService = new TurndownService({
+      headingStyle: "atx",
+      codeBlockStyle: "fenced",
+    });
+
+    // Cấu hình Turndown để hỗ trợ bảng
+    // Lưu ý: Cần import gfm plugin nếu muốn bảng chuẩn GitHub, 
+    // nhưng bản thân Turndown cơ bản vẫn xử lý tốt table HTML thô.
+    
+    let md = `# ${activeProject?.name} - ${currentVersion.name}\n\n`;
+    md += `> Exported on: ${new Date().toLocaleString()}\n\n---\n\n`;
+
+    currentVersion.sections.forEach(section => {
+      md += `## ${section.title}\n\n`;
+      // Nếu nội dung chứa HTML (từ Word import), convert sang MD. Nếu không thì giữ nguyên.
+      const content = section.content.includes('<') 
+        ? turndownService.turndown(section.content) 
+        : section.content;
+      md += `${content}\n\n---\n\n`;
+    });
+
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${activeProject?.name}_GDD_${currentVersion.name}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    pushToast("Exported to Markdown (.md) successfully!", "success");
   };
 
-  // Nếu Store chưa sẵn sàng, render trạng thái loading để tránh lỗi nút bấm
   if (!hasHydrated) {
     return (
-      <PageContainer title={t.pages.gddStudio} description="Loading Studio...">
+      <PageContainer title={t.pages.gddStudio} description="Syncing storage...">
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent"></div>
         </div>
@@ -170,8 +201,8 @@ export function GDDStudioPage() {
 
               <div className="flex gap-2">
                 <Button onClick={createStarter} className="flex-1">Build</Button>
-                <Button variant="ghost" onClick={handleExportDocx} disabled={!currentVersion}>
-                  Export
+                <Button variant="ghost" onClick={handleExportMarkdown} disabled={!currentVersion} className="border-teal-500 text-teal-600">
+                  Export .MD
                 </Button>
               </div>
             </div>
@@ -181,7 +212,6 @@ export function GDDStudioPage() {
             <EmptyState title="No GDD versions" description="Click 'Build' to create your first GDD version." />
           ) : (
             <div className="grid gap-4 xl:grid-cols-12">
-              {/* Sections List */}
               <Card title="Sections" className="xl:col-span-3 h-fit">
                 <div className="space-y-1">
                   {currentVersion.sections.map((section) => (
@@ -198,20 +228,14 @@ export function GDDStudioPage() {
                           {section.status}
                         </Badge>
                       </div>
-                      {currentVersion.sectionBuildMeta?.[section.key] && (
-                        <p className="mt-1 text-[10px] text-slate-400">
-                          {currentVersion.sectionBuildMeta[section.key].blockCount} blocks | {currentVersion.sectionBuildMeta[section.key].confidenceSummary}
-                        </p>
-                      )}
                     </button>
                   ))}
                 </div>
               </Card>
 
-              {/* Editor Area */}
               <Card title={currentSection?.title ?? "Editor"} className="xl:col-span-6">
                 {!currentSection ? (
-                  <EmptyState title="Select a section" description="Choose a section from the left to edit." />
+                  <EmptyState title="Select section" description="Choose section to edit." />
                 ) : (
                   <div className="space-y-4">
                     <Textarea
@@ -225,40 +249,25 @@ export function GDDStudioPage() {
                         })
                       }
                     />
-                    <p className="text-[10px] text-slate-400 italic">
-                      Status is updated automatically based on content density.
-                    </p>
                   </div>
                 )}
               </Card>
 
-              {/* Comparison & Meta */}
               <Card title="Insight & Compare" className="xl:col-span-3 h-fit">
                 {!currentCompare ? (
-                  <EmptyState title="No baseline" description="Changes appear here once you have multiple versions." />
+                  <EmptyState title="No baseline" description="Comparison data not found." />
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase text-slate-500">Change Status</span>
+                      <span className="text-xs font-bold text-slate-500 uppercase">Status</span>
                       <Badge tone={currentCompare.changed ? "warn" : "good"}>
                         {currentCompare.changed ? "Modified" : "Original"}
                       </Badge>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Previous Content Snippet</label>
-                      <div className="max-h-32 overflow-y-auto rounded bg-slate-50 p-2 text-[11px] text-slate-600 border border-slate-100">
-                        {currentCompare.before || "No previous version found."}
-                      </div>
-                    </div>
-
                     {currentVersion.parserCoverage && (
                       <div className="rounded-lg bg-teal-50 p-3 border border-teal-100">
-                        <p className="text-xs font-semibold text-teal-800">Source Coverage</p>
+                        <p className="text-xs font-semibold text-teal-800">Coverage</p>
                         <p className="text-lg font-bold text-teal-600">{currentVersion.parserCoverage.mappedPercent}%</p>
-                        <p className="text-[10px] text-teal-700">
-                          {currentVersion.parserCoverage.mappedBlocks} / {currentVersion.parserCoverage.totalBlocks} source blocks mapped.
-                        </p>
                       </div>
                     )}
                   </div>
@@ -268,12 +277,8 @@ export function GDDStudioPage() {
           )}
 
           <div className="flex justify-end pt-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowMaterializationDebug(!showMaterializationDebug)}
-            >
-              {showMaterializationDebug ? "Hide Debug Panel" : "View Section Materialization"}
+            <Button variant="ghost" size="sm" onClick={() => setShowMaterializationDebug(!showMaterializationDebug)}>
+              {showMaterializationDebug ? "Hide Debug" : "Show Debug"}
             </Button>
           </div>
 
