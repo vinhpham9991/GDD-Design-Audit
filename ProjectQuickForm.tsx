@@ -1,14 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState, useEffect } from "react";
 import { Button } from "@/components/shared/Button";
 import { Input } from "@/components/shared/Input";
 import { useI18n } from "@/hooks/useI18n";
 import { useAppStore } from "@/store";
 
 const projectSchema = z.object({
-  name: z.string().min(3, { message: "Tên dự án phải có ít nhất 3 ký tự" }),
+  name: z.string().min(3, { message: "Tên dự án phải từ 3 ký tự trở lên" }),
   genre: z.string().optional(),
   platform: z.string().optional(),
 });
@@ -16,78 +15,57 @@ const projectSchema = z.object({
 type ProjectFormValues = z.infer<typeof projectSchema>;
 
 export function ProjectQuickForm() {
-  const [isReady, setIsReady] = useState(false);
+  const hasHydrated = useAppStore((state) => state._hasHydrated);
   const addProject = useAppStore((state) => state.addProject);
   const { t } = useI18n();
 
-  // Đảm bảo Store đã đồng bộ xong với LocalStorage trước khi render để tránh lỗi trên Vercel
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
-
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
-    defaultValues: {
-      name: "",
-      genre: "",
-      platform: "",
-    },
+    defaultValues: { name: "", genre: "", platform: "" },
   });
 
-  // Trích xuất lỗi để hiển thị cho người dùng
   const { errors } = form.formState;
 
   const onSubmit = form.handleSubmit((values) => {
-    try {
-      const timestamp = new Date().toISOString();
-      
-      // Sử dụng crypto.randomUUID an toàn hơn trong môi trường HTTPS của Vercel
-      const newId = typeof crypto.randomUUID === 'function' 
-        ? crypto.randomUUID() 
-        : Math.random().toString(36).substring(2, 15);
+    const timestamp = new Date().toISOString();
+    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 9);
 
-      addProject({
-        id: `proj_${newId}`,
-        name: values.name,
-        genre: values.genre || "",
-        platform: values.platform || "",
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        status: "Draft",
-        targetAudience: "",
-      });
+    addProject({
+      id: `proj_${newId}`,
+      name: values.name,
+      genre: values.genre || "",
+      platform: values.platform || "",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      status: "Draft",
+      targetAudience: "",
+    });
 
-      form.reset();
-    } catch (error) {
-      console.error("Lỗi khi tạo dự án:", error);
-    }
+    form.reset();
   });
 
-  if (!isReady) return null;
+  // Chặn render cho đến khi Store sẵn sàng (fix lỗi liệt nút trên Vercel)
+  if (!hasHydrated) return <div className="h-10 animate-pulse bg-slate-100 rounded-lg" />;
 
   return (
-    <div className="flex flex-col gap-2">
-      <form className="grid gap-3 md:grid-cols-4 items-start" onSubmit={onSubmit}>
-        <div className="flex flex-col gap-1">
-          <Input 
-            placeholder="Project name" 
-            {...form.register("name")} 
-            className={errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
-          />
-          {errors.name && (
-            <span className="text-[10px] text-red-500 font-medium px-1">
-              {errors.name.message}
-            </span>
-          )}
-        </div>
+    <form className="grid gap-3 md:grid-cols-4 items-start" onSubmit={onSubmit}>
+      <div className="flex flex-col gap-1">
+        <Input 
+          placeholder="Project name" 
+          {...form.register("name")} 
+          className={errors.name ? "border-red-500 focus:ring-red-200" : ""}
+        />
+        {errors.name && <span className="text-[10px] text-red-500 px-1 font-medium">{errors.name.message}</span>}
+      </div>
 
-        <Input placeholder="Genre" {...form.register("genre")} />
-        <Input placeholder="Platform" {...form.register("platform")} />
-        
-        <Button type="submit" className="h-10">
-          {t.common.create}
-        </Button>
-      </form>
-    </div>
+      <Input placeholder="Genre" {...form.register("genre")} />
+      <Input placeholder="Platform" {...form.register("platform")} />
+      
+      <Button type="submit" className="h-10">
+        {t.common.create}
+      </Button>
+    </form>
   );
 }

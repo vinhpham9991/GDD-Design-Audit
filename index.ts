@@ -17,76 +17,31 @@ import type { AppStore } from "@/store/types";
 const STORE_VERSION = 2;
 const VALID_LANGUAGES = new Set(["en", "vi"]);
 
+// Quản lý trạng thái đồng bộ dữ liệu (Hydration)
+interface HydrationState {
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
+}
+
 function sanitizePersistedState(persistedState: unknown): Partial<AppStore> {
   const seed = createSeedState();
-  if (!persistedState || typeof persistedState !== "object") {
-    return seed;
-  }
-
+  if (!persistedState || typeof persistedState !== "object") return seed;
   const state = persistedState as Partial<AppStore>;
 
   return {
     projects: Array.isArray(state.projects) ? state.projects : seed.projects,
-    activeProjectId:
-      typeof state.activeProjectId === "string" || state.activeProjectId === undefined
-        ? state.activeProjectId
-        : seed.activeProjectId,
+    activeProjectId: typeof state.activeProjectId === "string" ? state.activeProjectId : seed.activeProjectId,
     sourceItems: Array.isArray(state.sourceItems) ? state.sourceItems : seed.sourceItems,
     gddVersions: Array.isArray(state.gddVersions) ? state.gddVersions : seed.gddVersions,
     auditResults: Array.isArray(state.auditResults) ? state.auditResults : seed.auditResults,
     scorecards: Array.isArray(state.scorecards) ? state.scorecards : seed.scorecards,
     insightReports: Array.isArray(state.insightReports) ? state.insightReports : seed.insightReports,
     issues: Array.isArray(state.issues) ? state.issues : seed.issues,
-    decisionLogs: Array.isArray(state.decisionLogs) ? state.decisionLogs : seed.decisionLogs,
-    revisionLogs: Array.isArray(state.revisionLogs) ? state.revisionLogs : seed.revisionLogs,
-    passHistory: Array.isArray(state.passHistory) ? state.passHistory : seed.passHistory,
-    approvalGates: Array.isArray(state.approvalGates) ? state.approvalGates : seed.approvalGates,
-    confidenceItems: Array.isArray(state.confidenceItems)
-      ? state.confidenceItems
-      : seed.confidenceItems,
-    evidenceCoverageItems: Array.isArray(state.evidenceCoverageItems)
-      ? state.evidenceCoverageItems
-      : seed.evidenceCoverageItems,
-    sourceQualityItems: Array.isArray(state.sourceQualityItems)
-      ? state.sourceQualityItems
-      : seed.sourceQualityItems,
-    conflictItems: Array.isArray(state.conflictItems) ? state.conflictItems : seed.conflictItems,
-    sidebarCollapsed:
-      typeof state.sidebarCollapsed === "boolean" ? state.sidebarCollapsed : seed.sidebarCollapsed,
-    language:
-      typeof state.language === "string" && VALID_LANGUAGES.has(state.language)
-        ? state.language
-        : seed.language,
+    language: typeof state.language === "string" && VALID_LANGUAGES.has(state.language) ? state.language : seed.language,
+    sidebarCollapsed: typeof state.sidebarCollapsed === "boolean" ? state.sidebarCollapsed : seed.sidebarCollapsed,
     helpOpen: false,
     toasts: [],
   };
-}
-
-function snapshotToStoreState(snapshot: AppSnapshot): Partial<AppStore> {
-  return sanitizePersistedState({
-    projects: snapshot.projects,
-    activeProjectId: snapshot.activeProjectId,
-    sourceItems: snapshot.sourceItems,
-    gddVersions: snapshot.gddVersions,
-    auditResults: snapshot.auditResults,
-    scorecards: snapshot.scorecards,
-    insightReports: snapshot.insightReports,
-    issues: snapshot.issues,
-    decisionLogs: snapshot.decisionLogs,
-    revisionLogs: snapshot.revisionLogs,
-    passHistory: snapshot.passHistory,
-    approvalGates: snapshot.approvalGates,
-    confidenceItems: snapshot.confidenceItems,
-    evidenceCoverageItems: snapshot.evidenceCoverageItems,
-    sourceQualityItems: snapshot.sourceQualityItems,
-    conflictItems: snapshot.conflictItems,
-  });
-}
-
-// Định nghĩa thêm type cho phần quản lý Hydration
-interface HydrationState {
-  _hasHydrated: boolean;
-  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAppStore = create<AppStore & HydrationState>()(
@@ -102,41 +57,22 @@ export const useAppStore = create<AppStore & HydrationState>()(
       ...createGovernanceSlice(set, get, api),
       ...createUiSlice(set, get, api),
       
-      // Quản lý trạng thái Hydration
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
 
-      resetToSeed: () =>
-        set(() => {
-          const seed = createSeedState();
-          return { ...seed };
-        }),
-      replaceFromSnapshot: (snapshot) => {
-        set(() => ({
-          ...createSeedState(),
-          ...snapshotToStoreState(snapshot),
-        }));
-      },
+      resetToSeed: () => set(() => ({ ...createSeedState() })),
+      replaceFromSnapshot: (snapshot) => set(() => ({ ...createSeedState(), ...sanitizePersistedState(snapshot) })),
     }),
     {
       name: APP_STORAGE_KEY,
       version: STORE_VERSION,
       storage: zustandStorage,
-      partialize: (state) => {
-        const { toasts, helpOpen, _hasHydrated, ...rest } = state;
-        return rest;
-      },
-      // Callback chạy sau khi đã nạp dữ liệu từ Storage xong
-      onRehydrateStorage: (state) => {
-        return () => state?.setHasHydrated(true);
-      },
+      onRehydrateStorage: (state) => () => state?.setHasHydrated(true),
       migrate: (persistedState) => sanitizePersistedState(persistedState),
-      merge: (persistedState, currentState) => {
-        return {
-          ...currentState,
-          ...sanitizePersistedState(persistedState),
-        };
-      },
-    },
-  ),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...sanitizePersistedState(persistedState),
+      }),
+    }
+  )
 );
