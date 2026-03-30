@@ -1,0 +1,258 @@
+import type { GddSectionKey } from "@/domain/models/constants";
+
+export const SUPPORT_BUCKETS = [
+  "document_purpose",
+  "document_scope",
+  "document_metadata",
+  "current_direction_summary",
+  "target_audience_support",
+  "audience_motivation",
+  "audience_pain_points",
+  "mechanics_systems",
+  "core_loop_support",
+  "tension_fail_state_logic",
+  "level_content_framework",
+  "queue_tuning",
+  "numeric_tuning",
+  "reward_payoff_design",
+  "progression_retention_support",
+  "recovery_continue_design",
+  "tutorial_onboarding_support",
+  "economy_reward_flow",
+  "ui_hud_controls_support",
+  "production_scope_notes",
+  "risks_assumptions_support",
+  "analytics_kpi_notes",
+  "appendix_notes",
+  "supporting_notes",
+  "reference_notes",
+  "unknown_unmapped",
+] as const;
+
+export type SupportBucket = (typeof SUPPORT_BUCKETS)[number];
+
+export type BucketCategory = "canonical" | "support" | "unknown";
+
+export type SupportBucketConfig = {
+  label: string;
+  canonicalHint?: GddSectionKey;
+  supportCanonical: GddSectionKey[];
+  headingCues: string[];
+  contentCues: string[];
+  category: Exclude<BucketCategory, "canonical">;
+  isDocumentFraming?: boolean;
+};
+
+export const SUPPORT_BUCKET_CONFIG: Record<SupportBucket, SupportBucketConfig> = {
+  document_purpose: {
+    label: "Document Purpose",
+    canonicalHint: "game_overview",
+    supportCanonical: ["game_overview", "design_goals"],
+    headingCues: ["muc dich tai lieu", "document purpose", "vai tro cua ban gdd nay", "purpose"],
+    contentCues: ["muc tieu", "pham vi", "dinh huong", "purpose", "intent"],
+    category: "support",
+    isDocumentFraming: true,
+  },
+  document_scope: {
+    label: "Document Scope",
+    canonicalHint: "design_goals",
+    supportCanonical: ["design_goals", "risks_assumptions"],
+    headingCues: ["pham vi", "scope", "in scope", "out of scope"],
+    contentCues: ["pham vi", "scope", "constraint", "gioi han"],
+    category: "support",
+    isDocumentFraming: true,
+  },
+  document_metadata: {
+    label: "Document Metadata",
+    supportCanonical: ["game_overview"],
+    headingCues: ["metadata", "version", "changelog", "revision"],
+    contentCues: ["version", "date", "owner", "author"],
+    category: "support",
+    isDocumentFraming: true,
+  },
+  current_direction_summary: {
+    label: "Current Direction Summary",
+    canonicalHint: "game_overview",
+    supportCanonical: ["game_overview", "design_goals"],
+    headingCues: ["current direction", "tong ket dinh huong", "direction summary"],
+    contentCues: ["direction", "priority", "focus", "dinh huong"],
+    category: "support",
+    isDocumentFraming: true,
+  },
+  target_audience_support: {
+    label: "Target Audience Support",
+    canonicalHint: "target_audience",
+    supportCanonical: ["target_audience", "design_goals"],
+    headingCues: ["audience summary", "phan loai nguoi choi", "persona", "target audience"],
+    contentCues: ["audience", "segment", "persona", "nguoi choi", "muc tieu"],
+    category: "support",
+  },
+  audience_motivation: {
+    label: "Audience Motivation",
+    canonicalHint: "target_audience",
+    supportCanonical: ["target_audience", "meta_layer", "core_gameplay_loop"],
+    headingCues: ["dong luc quay lai", "motivation", "retention trigger"],
+    contentCues: ["motivation", "return", "retention", "habit", "dong luc"],
+    category: "support",
+  },
+  audience_pain_points: {
+    label: "Audience Pain Points",
+    canonicalHint: "target_audience",
+    supportCanonical: ["target_audience", "ftue", "core_gameplay_loop"],
+    headingCues: ["pain points", "pain point", "can tranh", "friction"],
+    contentCues: ["pain", "friction", "drop off", "roi bo", "can tranh"],
+    category: "support",
+  },
+  mechanics_systems: {
+    label: "Mechanics & Systems",
+    canonicalHint: "new_mechanics",
+    supportCanonical: ["new_mechanics", "core_gameplay_loop", "controls"],
+    headingCues: ["core mechanics", "mechanics systems", "cup system", "physics rules", "fail state"],
+    contentCues: ["mechanic", "system", "physics", "merge", "order", "fail state", "co che"],
+    category: "support",
+  },
+  core_loop_support: {
+    label: "Core Loop Support",
+    canonicalHint: "core_gameplay_loop",
+    supportCanonical: ["core_gameplay_loop", "new_mechanics"],
+    headingCues: ["moment to moment loop", "core loop support", "vong lap"],
+    contentCues: ["loop", "session", "core action", "cadence", "vong lap"],
+    category: "support",
+  },
+  tension_fail_state_logic: {
+    label: "Tension & Fail-state Logic",
+    canonicalHint: "core_gameplay_loop",
+    supportCanonical: ["core_gameplay_loop", "new_mechanics", "risks_assumptions"],
+    headingCues: ["core tension model", "danger window", "grace window", "fail state"],
+    contentCues: ["tension", "deadline", "danger", "grace", "fail", "that bai"],
+    category: "support",
+  },
+  level_content_framework: {
+    label: "Level Content Framework",
+    canonicalHint: "new_mechanics",
+    supportCanonical: ["new_mechanics", "core_gameplay_loop", "meta_layer"],
+    headingCues: ["level design framework", "level content", "stage structure"],
+    contentCues: ["level", "wave", "stage", "difficulty", "ban do"],
+    category: "support",
+  },
+  queue_tuning: {
+    label: "Queue Tuning",
+    canonicalHint: "new_mechanics",
+    supportCanonical: ["new_mechanics", "core_gameplay_loop", "economy"],
+    headingCues: ["queue bias rules", "queue tuning"],
+    contentCues: ["queue", "spawn", "distribution", "bias"],
+    category: "support",
+  },
+  numeric_tuning: {
+    label: "Numeric Tuning",
+    canonicalHint: "new_mechanics",
+    supportCanonical: ["new_mechanics", "economy", "core_gameplay_loop"],
+    headingCues: ["numeric tuning framework", "tuning", "balancing"],
+    contentCues: ["numeric", "ratio", "coefficient", "balance", "chi so"],
+    category: "support",
+  },
+  reward_payoff_design: {
+    label: "Reward & Payoff Design",
+    canonicalHint: "economy",
+    supportCanonical: ["economy", "meta_layer", "monetization"],
+    headingCues: ["reward", "payoff", "phan thuong"],
+    contentCues: ["reward", "payoff", "currency", "phan thuong"],
+    category: "support",
+  },
+  progression_retention_support: {
+    label: "Progression / Retention Support",
+    canonicalHint: "meta_layer",
+    supportCanonical: ["meta_layer", "core_gameplay_loop", "live_ops"],
+    headingCues: ["progression", "retention", "meta progression"],
+    contentCues: ["progression", "retention", "meta", "long term"],
+    category: "support",
+  },
+  recovery_continue_design: {
+    label: "Recovery / Continue Design",
+    canonicalHint: "ftue",
+    supportCanonical: ["ftue", "core_gameplay_loop", "meta_layer"],
+    headingCues: ["continue recovery design", "recovery", "continue"],
+    contentCues: ["continue", "recover", "second chance", "revive"],
+    category: "support",
+  },
+  tutorial_onboarding_support: {
+    label: "Tutorial / Onboarding Support",
+    canonicalHint: "ftue",
+    supportCanonical: ["ftue", "controls", "target_audience"],
+    headingCues: ["ftue", "tutorial", "onboarding", "huong dan dau game"],
+    contentCues: ["tutorial", "first session", "onboarding", "new user"],
+    category: "support",
+  },
+  economy_reward_flow: {
+    label: "Economy Reward Flow",
+    canonicalHint: "economy",
+    supportCanonical: ["economy", "monetization", "meta_layer"],
+    headingCues: ["economy reward flow", "resource flow", "nen kinh te"],
+    contentCues: ["economy", "sink", "source", "currency", "resource"],
+    category: "support",
+  },
+  ui_hud_controls_support: {
+    label: "UI / HUD / Controls Support",
+    canonicalHint: "controls",
+    supportCanonical: ["controls", "ftue", "aesthetic_direction"],
+    headingCues: ["ui", "hud", "controls", "dieu khien"],
+    contentCues: ["ui", "hud", "input", "gesture", "button"],
+    category: "support",
+  },
+  production_scope_notes: {
+    label: "Production Scope Notes",
+    canonicalHint: "risks_assumptions",
+    supportCanonical: ["risks_assumptions", "design_goals", "live_ops"],
+    headingCues: ["scope", "production", "roadmap", "timeline"],
+    contentCues: ["production", "resource", "scope", "risk", "team"],
+    category: "support",
+  },
+  risks_assumptions_support: {
+    label: "Risks / Assumptions Support",
+    canonicalHint: "risks_assumptions",
+    supportCanonical: ["risks_assumptions", "design_goals"],
+    headingCues: ["risks", "assumptions", "rui ro", "gia dinh"],
+    contentCues: ["risk", "assumption", "unknown", "mitigation"],
+    category: "support",
+  },
+  analytics_kpi_notes: {
+    label: "Analytics / KPI Notes",
+    canonicalHint: "live_ops",
+    supportCanonical: ["live_ops", "meta_layer", "core_gameplay_loop"],
+    headingCues: ["kpi", "metrics", "self audit", "telemetry", "analytics"],
+    contentCues: ["kpi", "metric", "measure", "retention", "d1", "d7", "arppu"],
+    category: "support",
+  },
+  appendix_notes: {
+    label: "Appendix Notes",
+    supportCanonical: ["risks_assumptions", "design_goals"],
+    headingCues: ["appendix", "phu luc"],
+    contentCues: ["appendix", "reference", "supplement"],
+    category: "support",
+  },
+  supporting_notes: {
+    label: "Supporting Notes",
+    supportCanonical: ["design_goals", "risks_assumptions"],
+    headingCues: ["supporting notes", "ghi chu bo sung", "designer notes"],
+    contentCues: ["note", "support", "rationale", "giai thich"],
+    category: "support",
+  },
+  reference_notes: {
+    label: "Reference Notes",
+    supportCanonical: ["design_goals", "target_audience", "new_mechanics"],
+    headingCues: ["reference", "tai lieu tham chieu", "benchmark"],
+    contentCues: ["reference", "benchmark", "competitor"],
+    category: "support",
+  },
+  unknown_unmapped: {
+    label: "Unknown / Unmapped",
+    supportCanonical: [],
+    headingCues: [],
+    contentCues: [],
+    category: "unknown",
+  },
+};
+
+export const SUPPORT_BUCKET_LABELS: Record<SupportBucket, string> = Object.fromEntries(
+  (Object.keys(SUPPORT_BUCKET_CONFIG) as SupportBucket[]).map((key) => [key, SUPPORT_BUCKET_CONFIG[key].label]),
+) as Record<SupportBucket, string>;
